@@ -398,7 +398,6 @@ void RemoveFile(const char *path)
 		fclose(f);
 		remove(name.c_str());
 		f = nullptr;
-		LogVerbose("Removed file: {}", name);
 	} else {
 		LogVerbose("Failed to remove file: {}", name);
 	}
