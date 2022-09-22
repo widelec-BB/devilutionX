@@ -157,7 +157,6 @@ void RemoveFile(string_view lpFileName)
 		fclose(f);
 		remove(name.c_str());
 		f = nullptr;
-		Log("Removed file: {}", name);
 	} else {
 		Log("Failed to remove file: {}", name);
 	}

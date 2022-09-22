@@ -30,6 +30,9 @@ void AddTrailingSlash(std::string &path)
 #ifdef _WIN32
 	if (!path.empty() && path.back() != '\\')
 		path += '\\';
+#elif defined(__MORPHOS__)
+	if (!path.empty() && path.back() != '/' && path.back() != '/')
+		path += '/';
 #else
 	if (!path.empty() && path.back() != '/')
 		path += '/';
@@ -44,6 +47,9 @@ std::string FromSDL(char *s)
 		Log("{}", SDL_GetError());
 		SDL_ClearError();
 	}
+#ifdef __MORPHOS__
+	AddTrailingSlash(result);
+#endif
 	return result;
 }
 
