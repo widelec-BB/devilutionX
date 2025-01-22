@@ -140,7 +140,11 @@ int SoundSample::SetChunk(ArraySharedPtr<std::uint8_t> fileData, std::size_t dwB
 	isMp3_ = isMp3;
 	file_data_ = std::move(fileData);
 	file_data_size_ = dwBytes;
+#ifdef __MORPHOS__
+	SDL_RWops *buf = SDL_RWFromMem(file_data_.get(), dwBytes);
+#else
 	SDL_RWops *buf = SDL_RWFromConstMem(file_data_.get(), dwBytes);
+#endif
 	if (buf == nullptr) {
 		return -1;
 	}
