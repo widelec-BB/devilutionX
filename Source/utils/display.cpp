@@ -335,7 +335,9 @@ bool SpawnWindow(const char *lpWindowName)
 	SetVideoModeToPrimary(*sgOptions.Graphics.fullscreen, windowSize.width, windowSize.height);
 	if (*sgOptions.Gameplay.grabInput)
 		SDL_WM_GrabInput(SDL_GRAB_ON);
+#ifndef __MORPHOS__
 	atexit(SDL_VideoQuit); // Without this video mode is not restored after fullscreen.
+#endif
 #else
 	int flags = SDL_WINDOW_ALLOW_HIGHDPI;
 	if (*sgOptions.Graphics.upscale) {
