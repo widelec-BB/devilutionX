@@ -13,6 +13,13 @@
 #include <windows.h>
 #endif
 
+#ifdef __MORPHOS__
+#include <libraries/charsets.h>
+#define DEVICES_TIMER_H
+#include <proto/dos.h>
+#include <proto/charsets.h>
+#endif
+
 #define DEFAULT_PRIORITY SDL_LOG_PRIORITY_CRITICAL
 #define DEFAULT_ASSERT_PRIORITY SDL_LOG_PRIORITY_WARN
 #define DEFAULT_APPLICATION_PRIORITY SDL_LOG_PRIORITY_INFO
@@ -696,7 +703,7 @@ char *SDL_GetPrefPath(const char *org, const char *app)
 #else
 
 namespace {
-#if !defined(__QNXNTO__) && !defined(__amigaos__)
+#if !defined(__QNXNTO__) && !defined(__amigaos__) && !defined(__MORPHOS__)
 char *readSymLink(const char *path)
 {
 	// From sdl2-2.0.9/src/filesystem/unix/SDL_sysfilesystem.c
@@ -778,7 +785,7 @@ char *SDL_GetBasePath()
 #endif
 #if defined(__3DS__)
 	retval = SDL_strdup("file:sdmc:/3ds/devilutionx/");
-#elif defined(__amigaos__)
+#elif defined(__amigaos__) || defined(__MORPHOS__)
 	retval = SDL_strdup("PROGDIR:");
 #else
 
@@ -831,6 +838,7 @@ char *SDL_GetBasePath()
 	return retval;
 }
 
+#ifndef __MORPHOS__
 char *SDL_GetPrefPath(const char *org, const char *app)
 {
 	// From sdl2-2.0.9/src/filesystem/unix/SDL_sysfilesystem.c
@@ -921,5 +929,104 @@ char *SDL_GetPrefPath(const char *org, const char *app)
 
 	return retval;
 }
+#endif
 
+#endif
+
+#ifdef __MORPHOS__
+char *SDL_strdup(const char *string)
+{
+    size_t len = SDL_strlen(string) + 1;
+    char *newstr = (char *)SDL_malloc(len);
+    if (newstr) {
+        SDL_memcpy(newstr, string, len);
+    }
+    return newstr;
+}
+
+static char *SDL_RemoveInvalidChars(const char *src)
+{
+	if (src)
+	{
+		char *s = SDL_strdup(src);
+		char *p = s;
+
+		if (s)
+		{
+			char c;
+
+			while ((c = *p))
+			{
+				if (c == '/' || c == ':')
+					*p = ' ';
+
+				p++;
+			}
+		}
+
+		return s;
+	} else
+		return NULL;
+}
+
+char *MOS_ConvertText(const char *src, LONG srcmib, LONG dstmib)
+{
+	size_t dstlen, tags[] = { CST_GetDestBytes, (size_t)&dstlen, TAG_DONE };
+	char *dst = NULL;
+
+	ConvertTagList((APTR)src, -1, NULL, -1, srcmib, dstmib, (struct TagItem *)&tags);
+
+	dstlen += 1;
+	dst = (char*)SDL_malloc(dstlen);
+
+	if (dst)
+		ConvertTagList((APTR)src, -1, dst, dstlen, srcmib, dstmib, NULL);
+
+	return dst;
+}
+
+char *SDL_GetPrefPath(const char *org, const char *app)
+{
+	char *p1 = SDL_RemoveInvalidChars(org);
+	char *path = NULL;
+	char *p2 = SDL_RemoveInvalidChars(app);
+
+	int len = sizeof("ENVARC:");
+	if (p1) len += SDL_strlen(p1) + 1;
+	if (p2) len += SDL_strlen(p2) + 1;
+	char *tmp = (char*)SDL_malloc(len);
+
+	if (tmp)
+	{
+		BPTR lock;
+
+		strcpy(tmp, "ENVARC:");
+		if (p1) {
+			AddPart(tmp, p1, len);
+			if ((lock = CreateDir(tmp)))
+				UnLock(lock);
+
+		}
+		if (p2)
+		{
+			AddPart(tmp, p2, len);
+			if ((lock = CreateDir(tmp)))
+				UnLock(lock);
+		}
+
+		path = MOS_ConvertText(tmp, MIBENUM_SYSTEM, MIBENUM_UTF_8);
+
+		SDL_free(tmp);
+
+	} else {
+
+		SDL_OutOfMemory();
+		return NULL;
+	}
+
+	if (p2) SDL_free(p2);
+	if (p1) SDL_free(p1);
+
+	return path;
+}
 #endif
